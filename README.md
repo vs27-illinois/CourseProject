@@ -1,3 +1,3 @@
 # Recipe Finder
 
-Please fork this repository and paste the github link of your fork on Microsoft CMT. Detailed instructions are on Coursera under Week 1: Course Project Overview/Week 9 Activities.
+Cooking has become a survival skill for everyone now and every day, people search for recipes using their preferred ingredient. AllRecipes.com is a website which has curated thousands of recipes from all over the world in different cuisines and cooking methods. Our Recipe Finder application will be an enhancement to the existing system and helps their users to search for recipes using their preferred ingredient and get recommended recipes based on the cooking method.
