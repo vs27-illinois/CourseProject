@@ -25,38 +25,36 @@ if __name__ == "__main__":
 
     print(f"{writer.numRamDocs()} docs in index")
 
-    df = pd.read_csv('dataset/recipe.csv')
-    df.drop("reviews", axis=1, inplace=True)
+    for df in pd.read_csv('dataset/recipe.csv', chunksize=5000, iterator=True):
+        df.drop("reviews", axis=1, inplace=True)
+        for index, row in df.iterrows():
+            print(f"Indexing row {index}...")
 
-    for index, row in df.iterrows():
-        print(f"Indexing row {index}...")
+            doc = Document()
 
-        doc = Document()
+            doc.add(Field("id", row["recipe_id"], t1))
+            doc.add(Field("name", row["recipe_name"], t1))
+            doc.add(Field("avg_rating", row["aver_rate"], t1))
+            doc.add(Field("image", row["image_url"], t1))
+            doc.add(Field("total_reviews", row["review_nums"], t1))
 
-        doc.add(Field("id", row["recipe_id"], t1))
-        doc.add(Field("name", row["recipe_name"], t1))
-        doc.add(Field("avg_rating", row["aver_rate"], t1))
-        doc.add(Field("image", row["image_url"], t1))
-        doc.add(Field("total_reviews", row["review_nums"], t1))
+            ingredients = row["ingredients"].split("^")
+            for ingredient in ingredients:
+                doc.add(Field("ingredients", ingredient, t2))
 
-        ingredients = row["ingredients"].split("^")
-        for ingredient in ingredients:
-            doc.add(Field("ingredients", ingredient, t2))
+            parsed = ast.literal_eval(row["cooking_directions"])
+            directions = parsed["directions"].split("\n")
+            for direction in directions:
+                doc.add(Field("directions", direction, t1))
 
-        parsed = ast.literal_eval(row["cooking_directions"])
-        directions = parsed["directions"].split("\n")
-        for direction in directions:
-            doc.add(Field("directions", direction, t1))
+            nutrition = ast.literal_eval(row["nutritions"])
+            doc.add(Field("calories", nutrition["calories"]["amount"], t1))
 
-        nutrition = ast.literal_eval(row["nutritions"])
-        doc.add(Field("calories", nutrition["calories"]["amount"], t1))
+            nutrition = json.dumps(nutrition)
+            doc.add(Field("nutrition", nutrition, t1))
 
-        nutrition = json.dumps(nutrition)
-        doc.add(Field("nutrition", nutrition, t1))
+            writer.addDocument(doc)
 
-        writer.addDocument(doc)
-
-    print(f"Indexed {df.shape[0]} lines from stdin ({writer.numRamDocs()} docs in index)")
     print(f"Closing index of {writer.numRamDocs()} docs...")
 
     writer.close()
