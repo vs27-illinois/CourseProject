@@ -11,9 +11,6 @@ from org.apache.lucene.index import IndexWriter, IndexWriterConfig, IndexOptions
 
 if __name__ == "__main__":
     lucene.initVM()
-    mmDir = MMapDirectory(Paths.get('index'))
-    writerConfig = IndexWriterConfig(EnglishAnalyzer())
-    writer = IndexWriter(mmDir, writerConfig)
 
     t1 = FieldType()
     t1.setStored(True)
@@ -26,22 +23,29 @@ if __name__ == "__main__":
     t3 = FieldType()
     t3.setStored(True)
     t3.setDocValuesType(DocValuesType.NUMERIC)
-    t3.setIndexOptions(IndexOptions.NONE)
+    t3.setIndexOptions(IndexOptions.DOCS)
 
-    print(f"{writer.numRamDocs()} docs in index")
+    t4 = FieldType()
+    t4.setStored(True)
+    t4.setDocValuesType(DocValuesType.NUMERIC)
+    t4.setIndexOptions(IndexOptions.NONE)
 
-    for df in pd.read_csv('dataset/recipe.csv', chunksize=5000, iterator=True):
+    for df in pd.read_csv('dataset/recipe.csv', chunksize=3000, iterator=True):
         df.drop("reviews", axis=1, inplace=True)
+
+        mmDir = MMapDirectory(Paths.get('index'))
+        writer = IndexWriter(mmDir, IndexWriterConfig(EnglishAnalyzer()))
+        print(f"{writer.numRamDocs()} docs in index")
+
         for index, row in df.iterrows():
             print(f"Indexing row {index}...")
 
             doc = Document()
-
             doc.add(Field("id", row["recipe_id"], t3))
             doc.add(Field("name", row["recipe_name"], t1))
-            doc.add(Field("avg_rating", row["aver_rate"], t3))
             doc.add(Field("image", row["image_url"], t1))
-            doc.add(Field("total_reviews", row["review_nums"], t3))
+            doc.add(Field("avg_rating", row["aver_rate"], t4))
+            doc.add(Field("total_reviews", row["review_nums"], t4))
 
             ingredients = row["ingredients"].split("^")
             for ingredient in ingredients:
@@ -60,16 +64,15 @@ if __name__ == "__main__":
             total_time = total_time[:-1] if total_time.endswith('+')\
                 else total_time
             total_time = eval(total_time)
-            doc.add(Field("total_time", total_time, t3))
+            doc.add(Field("total_time", total_time, t4))
 
             nutrition = ast.literal_eval(row["nutritions"])
-            doc.add(Field("calories", nutrition["calories"]["amount"], t3))
+            doc.add(Field("calories", nutrition["calories"]["amount"], t4))
 
             nutrition = json.dumps(nutrition)
             doc.add(Field("nutrition", nutrition, t1))
 
             writer.addDocument(doc)
 
-    print(f"Closing index of {writer.numRamDocs()} docs...")
-
-    writer.close()
+        print(f"Closing index of {writer.numRamDocs()} docs...")
+        writer.close()
