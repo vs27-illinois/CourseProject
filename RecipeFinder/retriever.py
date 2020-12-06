@@ -96,6 +96,7 @@ def get_recommended_recipes():
     # ingredients = '<from_post_request>'
     # calories = '<from_post_request>'
 
+    # recommended recipes should be based on similar {ingredients, calories}
     recipes = [{"count": df.shape[0]}] # get_recommended_recipes(df, id, ingredients, calories)
 
     return jsonify(recipes)
