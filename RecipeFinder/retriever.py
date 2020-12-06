@@ -68,6 +68,13 @@ def get_recipe_details(recipe_id):
     for hit in hits.scoreDocs:
         doc = searcher.doc(hit.doc)
         recipe['id'] = doc.get('id')
+        recipe['name'] = doc.get('name')
+        recipe['image'] = doc.get('image')
+        recipe['calories'] = doc.get('calories')
+        recipe['total_time'] = doc.get('total_time')
+        recipe['avg_rating'] = doc.get('avg_rating')
+        recipe['total_reviews'] = doc.get('total_reviews')
+        recipe['ingredients'] = convert_to_list(doc, "ingredients")
         recipe['directions'] = convert_to_list(doc, "directions")
         recipe['nutrition'] = json.loads(doc.get('nutrition'))
 
