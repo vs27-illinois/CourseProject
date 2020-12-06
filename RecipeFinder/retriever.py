@@ -1,12 +1,13 @@
 import json
 import lucene
+import pandas
 
 from flask import Flask
 from flask import jsonify
 from java.nio.file import Paths
 from org.apache.lucene.store import MMapDirectory
 from org.apache.lucene.index import DirectoryReader
-from org.apache.lucene.search import IndexSearcher, Sort, SortField
+from org.apache.lucene.search import IndexSearcher, Sort, SortField, MatchAllDocsQuery
 from org.apache.lucene.analysis.en import EnglishAnalyzer
 from org.apache.lucene.analysis.standard import StandardAnalyzer
 from org.apache.lucene.queryparser.classic import QueryParser
@@ -81,23 +82,25 @@ def get_recipe_details(recipe_id):
     return jsonify(recipe)
 
 
-@app.route('/recipe/recommend/<recipe_id>')
-def get_recommended_recipes(recipe_id):
+@app.route('/recipe/recommend')
+def get_recommended_recipes():
     vm.attachCurrentThread()
-    query_parser = QueryParser("id", StandardAnalyzer())
-    query = query_parser.parse(recipe_id)
-    hits = searcher.search(query, 5)
 
-    recipes = []
+    # id = '<from_post_request>'
+    # ingredients = '<from_post_request>'
+    # calories = '<from_post_request>'
+
+    hits = searcher.search(MatchAllDocsQuery(), 50000)
+
+    all_recipes = []
     for hit in hits.scoreDocs:
         doc = searcher.doc(hit.doc)
-        calories = doc.get('calories')
-        total_time = doc.get('total_time')
-        ingredients = convert_to_list(doc, "ingredients")
-        # recipes = get_recommended_recipes(ingredients, calories, total_time)
+        all_recipes.append(convert_to_json(doc))
 
-    recipe = {"id": recipe_id, "name": "Onion Chutney"}
-    recipes.append(recipe)
+    df = pandas.DataFrame(all_recipes)
+
+    recipes = [{"count": df.shape[0]}] # get_recommended_recipes(df, id, ingredients, calories)
+
     return jsonify(recipes)
 
 
