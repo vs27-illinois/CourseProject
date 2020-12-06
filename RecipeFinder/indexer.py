@@ -9,36 +9,51 @@ from org.apache.lucene.analysis.en import EnglishAnalyzer
 from org.apache.lucene.document import Document, Field, FieldType
 from org.apache.lucene.index import IndexWriter, IndexWriterConfig, IndexOptions, DocValuesType
 
-if __name__ == "__main__":
-    lucene.initVM()
+def get_field_type():
+    t = FieldType()
+    t.setStored(True)
+    return t
 
-    t1 = FieldType()
-    t1.setStored(True)
+def get_numeric_field_type():
+    t = get_field_type()
+    t.setDocValuesType(DocValuesType.NUMERIC)
+    return t
+
+def parse_cooking_directions(row):
+    parsed = ast.literal_eval(row["cooking_directions"])
+    return parsed["directions"].split("\n")
+
+def parse_total_time(total_time):
+    total_time = total_time.replace('d', '* 24 * 60 +') \
+        .replace('h', '* 60 +').replace('m', '').strip()
+    total_time = total_time[:-1] if total_time.endswith('+') \
+        else total_time
+    return eval(total_time)
+
+def index_data():
+    t1 = get_field_type()
     t1.setIndexOptions(IndexOptions.NONE)
 
-    t2 = FieldType()
-    t2.setStored(True)
+    t2 = get_field_type()
     t2.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS)
 
-    t3 = FieldType()
-    t3.setStored(True)
-    t3.setDocValuesType(DocValuesType.NUMERIC)
+    t3 = get_numeric_field_type()
     t3.setIndexOptions(IndexOptions.DOCS)
 
-    t4 = FieldType()
-    t4.setStored(True)
-    t4.setDocValuesType(DocValuesType.NUMERIC)
+    t4 = get_numeric_field_type()
     t4.setIndexOptions(IndexOptions.NONE)
 
+    index = 0
     for df in pd.read_csv('dataset/recipe.csv', chunksize=3000, iterator=True):
         df.drop("reviews", axis=1, inplace=True)
 
-        mmDir = MMapDirectory(Paths.get('index'))
-        writer = IndexWriter(mmDir, IndexWriterConfig(EnglishAnalyzer()))
-        print(f"{writer.numRamDocs()} docs in index")
+        index += 1
+        mm_dir = MMapDirectory(Paths.get('index'))
+        writer = IndexWriter(mm_dir, IndexWriterConfig(EnglishAnalyzer()))
+        print(f"Opening index {index} with {writer.numRamDocs()} docs...")
 
-        for index, row in df.iterrows():
-            print(f"Indexing row {index}...")
+        for num, row in df.iterrows():
+            print(f"Indexing row {num+1}...")
 
             doc = Document()
             doc.add(Field("id", row["recipe_id"], t3))
@@ -51,19 +66,14 @@ if __name__ == "__main__":
             for ingredient in ingredients:
                 doc.add(Field("ingredients", ingredient, t2))
 
-            parsed = ast.literal_eval(row["cooking_directions"])
-            directions = parsed["directions"].split("\n")
+            directions = parse_cooking_directions(row)
             total_time = '0'
             for idx, direction in enumerate(directions):
                 doc.add(Field("directions", direction, t1))
                 if direction.lower() == 'ready in' and idx <= 4:
-                    total_time = directions[idx+1]
+                    total_time = directions[idx + 1]
 
-            total_time = total_time.replace('d', '* 24 * 60 +')\
-                .replace('h', '* 60 +').replace('m', '').strip()
-            total_time = total_time[:-1] if total_time.endswith('+')\
-                else total_time
-            total_time = eval(total_time)
+            total_time = parse_total_time(total_time)
             doc.add(Field("total_time", total_time, t4))
 
             nutrition = ast.literal_eval(row["nutritions"])
@@ -74,5 +84,9 @@ if __name__ == "__main__":
 
             writer.addDocument(doc)
 
-        print(f"Closing index of {writer.numRamDocs()} docs...")
+        print(f"Closing index {index} with {writer.numRamDocs()} docs...")
         writer.close()
+
+if __name__ == "__main__":
+    lucene.initVM()
+    index_data()

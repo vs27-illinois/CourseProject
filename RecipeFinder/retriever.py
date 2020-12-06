@@ -1,6 +1,6 @@
 import json
 import lucene
-import pandas
+import pandas as pd
 
 from flask import Flask
 from flask import jsonify
@@ -45,11 +45,13 @@ def parse_results(results):
     return recipes
 
 
-all_hits = searcher.search(MatchAllDocsQuery(), 50000)
-all_recipes = parse_results(all_hits)
-df = pandas.DataFrame(all_recipes)
-del all_hits
-del all_recipes
+def get_all_recipes():
+    hits = searcher.search(MatchAllDocsQuery(), 50000)
+    recipes = parse_results(hits)
+    return pd.DataFrame(recipes)
+
+
+df = get_all_recipes()
 
 
 @app.route('/recipe/search/<ingredient>')
