@@ -12,6 +12,7 @@ from org.apache.lucene.analysis.en import EnglishAnalyzer
 from org.apache.lucene.analysis.standard import StandardAnalyzer
 from org.apache.lucene.queryparser.classic import QueryParser
 
+
 app = Flask(__name__)
 vm = lucene.initVM()
 mmDir = MMapDirectory(Paths.get('index'))
@@ -35,14 +36,21 @@ def convert_to_json(doc):
         'ingredients': convert_to_list(doc, "ingredients")
     }
 
+
+def parse_results(results):
+    recipes = []
+    for hit in results.scoreDocs:
+        doc = searcher.doc(hit.doc)
+        recipes.append(convert_to_json(doc))
+    return recipes
+
+
 all_hits = searcher.search(MatchAllDocsQuery(), 50000)
-
-all_recipes = []
-for hit in all_hits.scoreDocs:
-    doc = searcher.doc(hit.doc)
-    all_recipes.append(convert_to_json(doc))
-
+all_recipes = parse_results(all_hits)
 df = pandas.DataFrame(all_recipes)
+del all_hits
+del all_recipes
+
 
 @app.route('/recipe/search/<ingredient>')
 def get_recipes(ingredient):
@@ -58,10 +66,7 @@ def get_recipes(ingredient):
     query = query_parser.parse(ingredient)
     hits = searcher.search(query, 20, sort)
 
-    recipes = []
-    for hit in hits.scoreDocs:
-        doc = searcher.doc(hit.doc)
-        recipes.append(convert_to_json(doc))
+    recipes = parse_results(hits)
 
     return jsonify(recipes)
 
@@ -76,14 +81,7 @@ def get_recipe_details(recipe_id):
     recipe = {}
     for hit in hits.scoreDocs:
         doc = searcher.doc(hit.doc)
-        recipe['id'] = doc.get('id')
-        recipe['name'] = doc.get('name')
-        recipe['image'] = doc.get('image')
-        recipe['calories'] = doc.get('calories')
-        recipe['total_time'] = doc.get('total_time')
-        recipe['avg_rating'] = doc.get('avg_rating')
-        recipe['total_reviews'] = doc.get('total_reviews')
-        recipe['ingredients'] = convert_to_list(doc, "ingredients")
+        recipe.update(convert_to_json(doc))
         recipe['directions'] = convert_to_list(doc, "directions")
         recipe['nutrition'] = json.loads(doc.get('nutrition'))
 
@@ -96,7 +94,7 @@ def get_recommended_recipes():
     # ingredients = '<from_post_request>'
     # calories = '<from_post_request>'
 
-    # recommended recipes should be based on similar {ingredients, calories}
+    # recommended recipes should be based on similar ingredients and calories
     recipes = [{"count": df.shape[0]}] # get_recommended_recipes(df, id, ingredients, calories)
 
     return jsonify(recipes)
