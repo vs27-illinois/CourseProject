@@ -35,6 +35,14 @@ def convert_to_json(doc):
         'ingredients': convert_to_list(doc, "ingredients")
     }
 
+all_hits = searcher.search(MatchAllDocsQuery(), 50000)
+
+all_recipes = []
+for hit in all_hits.scoreDocs:
+    doc = searcher.doc(hit.doc)
+    all_recipes.append(convert_to_json(doc))
+
+df = pandas.DataFrame(all_recipes)
 
 @app.route('/recipe/search/<ingredient>')
 def get_recipes(ingredient):
@@ -63,7 +71,7 @@ def get_recipe_details(recipe_id):
     vm.attachCurrentThread()
     query_parser = QueryParser("id", StandardAnalyzer())
     query = query_parser.parse(recipe_id)
-    hits = searcher.search(query, 5)
+    hits = searcher.search(query, 1)
 
     recipe = {}
     for hit in hits.scoreDocs:
@@ -84,20 +92,9 @@ def get_recipe_details(recipe_id):
 
 @app.route('/recipe/recommend')
 def get_recommended_recipes():
-    vm.attachCurrentThread()
-
     # id = '<from_post_request>'
     # ingredients = '<from_post_request>'
     # calories = '<from_post_request>'
-
-    hits = searcher.search(MatchAllDocsQuery(), 50000)
-
-    all_recipes = []
-    for hit in hits.scoreDocs:
-        doc = searcher.doc(hit.doc)
-        all_recipes.append(convert_to_json(doc))
-
-    df = pandas.DataFrame(all_recipes)
 
     recipes = [{"count": df.shape[0]}] # get_recommended_recipes(df, id, ingredients, calories)
 
