@@ -1,0 +1,83 @@
+<style>
+  :host {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    font-size: 14px;
+    color: #333;
+    box-sizing: border-box;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .toolbar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    background-color: #1976d2;
+    color: white;
+    font-weight: 600;
+    padding: 10px 14px 7px;
+  }
+
+  .title {
+    font-size: 18px;
+  }
+
+  .search {
+    margin: 0 auto;
+  }
+
+  .minw-500 {
+    min-width: 500px;
+  }
+
+  .tc-w {
+    color: white;
+  }
+
+  input {
+    font-size: 15px;
+  }
+
+  input::placeholder {
+    color: white !important;
+  }
+
+  ::ng-deep.mat-form-field-underline,
+  ::ng-deep.mat-form-field-ripple {
+    background-color: white !important;
+  }
+
+  button {
+    margin-left: 7px;
+    color: #1976d2 !important;
+    background-color: white;
+  }
+</style>
+
+<div class="toolbar" role="banner">
+  <span class="title">{{ title }}</span>
+  <div class="search">
+    <mat-form-field class="minw-500">
+      <mat-label class="tc-w">Search Recipes</mat-label>
+      <input matInput #ingredient autocomplete="off" placeholder="Type any ingredient name (ex. egg) and press Enter." (keyup.enter)="onSubmit(ingredient.value)">
+    </mat-form-field>
+    <button mat-stroked-button color="primary" (click)="onSubmit(ingredient.value)">Search</button>
+  </div>
+</div>
+
+<div class="content" role="main">
+  <div class="results">
+    <mat-grid-list cols="4" rowHeight="4:5">
+      <mat-grid-tile class="result" *ngFor="let recipe of recipes">
+        <div>
+          <img src="{{ recipe.image }}" width="180" height="180" (click)="onClick(recipe.id)"/>
+        </div>
+        <div>{{ recipe.name }}</div>
+      </mat-grid-tile>
+    </mat-grid-list>
+  </div>
+</div>
