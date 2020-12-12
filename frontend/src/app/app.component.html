@@ -15,14 +15,15 @@
     right: 0;
     display: flex;
     align-items: center;
-    background-color: #1976d2;
+    background: #1976d2;
     color: white;
     font-weight: 600;
     padding: 10px 14px 7px;
   }
 
-  .title {
+  .app-title {
     font-size: 18px;
+    cursor: pointer;
   }
 
   .center {
@@ -55,13 +56,13 @@
 
   ::ng-deep.mat-form-field-underline,
   ::ng-deep.mat-form-field-ripple {
-    background-color: white !important;
+    background: white !important;
   }
 
   .search-btn {
     margin-left: 7px;
     color: #1976d2 !important;
-    background-color: white;
+    background: white !important;
   }
 
   .content {
@@ -72,6 +73,7 @@
   .card {
     margin: 10px;
     height: 315px;
+    cursor: pointer;
   }
 
   ::ng-deep.mat-card-header-text {
@@ -116,34 +118,69 @@
   }
 
   .divider {
-    height: 24px;
-    width: 1px;
-    background: #ccc;
-    margin: 0 14px;
+    margin: 0 7px;
+    vertical-align: middle;
+    font-size: 20px;
+  }
+
+  .close-btn {
+    margin: 5px 10px;
+    background: #1976d2 !important;
+  }
+
+  .card-details {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .card-details img {
+    width: 600px !important;
+    height: 360px !important;
+    margin: 0px !important;
+  }
+
+  .card-content-hd {
+    font-weight: 500;
+  }
+
+  .card-details-ft {
+    margin-top: 25px;
+    text-align: center;
+    background: #1976d2;
+    padding: 10px 0px;
+  }
+
+  .no-results {
+    margin-top: 25px;
+    text-align: center;
+    padding: 10px 0px;
   }
 </style>
 
 <div class="toolbar" role="banner">
-  <span class="title">{{ title }}</span>
+  <div class="app-title" (click)="onTitleClick()">{{ title }}</div>
   <div class="center">
     <mat-form-field class="min-w-500">
       <mat-label class="tc-w">Search Recipes</mat-label>
       <input class="search-bar" matInput #ingredient autocomplete="off"
              placeholder="Type any ingredient name (ex. egg) and press Enter."
-             (keyup.enter)="onSubmit(ingredient.value)">
+             (keyup.enter)="onInputSubmit(ingredient.value)">
     </mat-form-field>
     <button class="search-btn" mat-stroked-button color="primary"
-            (click)="onSubmit(ingredient.value)">
+            (click)="onInputSubmit(ingredient.value)">
       Search
     </button>
   </div>
 </div>
 
 <div class="content" role="main">
-  <!-- search results -->
-  <mat-grid-list cols="4" rowHeight="335px" *ngIf="!showDetails">
+  <!-- Search Results -->
+  <h2 class="no-results" *ngIf="recipes.length == 0">
+    {{ message }}
+  </h2>
+  <mat-grid-list cols="4" rowHeight="335px" *ngIf="!showDetails && recipes.length > 0">
     <mat-grid-tile *ngFor="let recipe of recipes">
-      <mat-card class="card" matRipple (click)="onClick(recipe.id)">
+      <mat-card class="card" matRipple (click)="onCardClick(recipe.id)">
         <mat-card-header>
           <mat-card-title class="card-name" matTooltip="{{ recipe.name }}">
             {{ recipe.name }}
@@ -166,14 +203,14 @@
         <mat-card-content>
           <p class="card-text"
              matTooltip="{{ recipe.ingredients.join(', ') | cardTooltip }}"
-             [innerHTML]="recipe.ingredients.join(', ')">
+             [innerHTML]="recipe.ingredients.join(', ') | cardContent">
           </p>
         </mat-card-content>
       </mat-card>
     </mat-grid-tile>
   </mat-grid-list>
 
-  <!-- recipe details -->
+  <!-- Recipe Details -->
   <div *ngIf="showDetails">
     <mat-card>
       <mat-card-header>
@@ -189,23 +226,87 @@
               </ng-template>
             </ngb-rating>
             Ratings
-            <span class="divider"></span>
+            <span class="divider">&bull;</span>
             {{ details.total_reviews | number }} Reviews
-            <span class="divider"></span>
+            <span class="divider">&bull;</span>
             {{ details.calories | number:'1.0-0' }} Calories
         </mat-card-subtitle>
-        <button mat-stroked-button color="primary"
-                (click)="closeDetails()">
-          Close
-        </button>
+        <div>
+          <button class="close-btn" mat-raised-button color="primary"
+                  (click)="onCloseClick()">
+            {{ buttonText }}
+          </button>
+        </div>
       </mat-card-header>
-      <img mat-card-image src="{{ details.image }}" height="500">
+      <div class="card-details">
+        <img mat-card-image src="{{ details.image }}">
+      </div>
       <mat-card-content>
-        <p [innerHTML]="details.ingredients.join(', ')">
-        </p>
-        <p [innerHTML]="details.directions.join(', ')">
+        <div *ngIf="details.time_taken.length > 1">
+          <h2 class="card-content-hd">Timings</h2>
+          <ul>
+            <li *ngFor="let time of details.time_taken | cardTiming">
+              {{ time }}
+            </li>
+          </ul>
+        </div>
+        <h2 class="card-content-hd">Ingredients</h2>
+        <ul>
+          <li *ngFor="let ingredient of details.ingredients">
+            {{ ingredient }}
+          </li>
+        </ul>
+        <h2 class="card-content-hd">Directions</h2>
+        <ul>
+          <li *ngFor="let direction of details.directions">
+            {{ direction }}
+          </li>
+        </ul>
+        <h2 class="card-content-hd">Nutrition</h2>
+        <p>
+          {{details.nutrition.calories.displayValue}} calories;
+          protein {{details.nutrition.protein.displayValue}}{{details.nutrition.protein.unit}}
+          {{details.nutrition.protein.percentDailyValue}}% DV;
+          carbohydrates {{details.nutrition.carbohydrates.displayValue}}{{details.nutrition.carbohydrates.unit}}
+          {{details.nutrition.carbohydrates.percentDailyValue}}% DV;
+          fat {{details.nutrition.fat.displayValue}}{{details.nutrition.fat.unit}}
+          {{details.nutrition.fat.percentDailyValue}}% DV.
         </p>
       </mat-card-content>
     </mat-card>
+
+    <!-- Similar Recipes -->
+    <h2 class="card-details-ft tc-w">Similar Recipes</h2>
+    <mat-grid-list cols="4" rowHeight="335px">
+      <mat-grid-tile *ngFor="let recommend of recommends">
+        <mat-card class="card" matRipple (click)="onCardClick(recommend.id)">
+          <mat-card-header>
+            <mat-card-title class="card-name" matTooltip="{{ recommend.name }}">
+              {{ recommend.name }}
+            </mat-card-title>
+            <mat-card-subtitle>
+              <div class="align-l">
+                <ngb-rating [(rate)]="recommend.avg_rating" [readonly]="true" [max]="5">
+                  <ng-template let-fill="fill">
+                    <span class="star" [class.full]="fill === 100">
+                      <span class="half" [style.width.%]="fill">&hearts;</span>&hearts;
+                    </span>
+                  </ng-template>
+                </ngb-rating>
+                {{ recommend.total_reviews | number }}
+              </div>
+              <div class="align-r">{{ recommend.calories | number:'1.0-0' }} Calories</div>
+            </mat-card-subtitle>
+          </mat-card-header>
+          <img mat-card-image src="{{ recommend.image }}" height="150">
+          <mat-card-content>
+            <p class="card-text"
+               matTooltip="{{ recommend.ingredients.join(', ') | cardTooltip }}"
+               [innerHTML]="recommend.ingredients.join(', ') | cardContent">
+            </p>
+          </mat-card-content>
+        </mat-card>
+      </mat-grid-tile>
+    </mat-grid-list>
   </div>
 </div>

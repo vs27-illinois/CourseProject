@@ -15,11 +15,15 @@ import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
 import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { CardTooltipPipe } from './card-tooltip.pipe';
+import { CardContentPipe } from './card-content.pipe';
+import { CardTimingPipe } from './card-timing.pipe';
 
 @NgModule({
   declarations: [
     AppComponent,
-    CardTooltipPipe
+    CardTooltipPipe,
+    CardContentPipe,
+    CardTimingPipe
   ],
   imports: [
     BrowserModule,
