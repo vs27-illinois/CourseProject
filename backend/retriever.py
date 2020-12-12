@@ -65,7 +65,11 @@ def get_all_recipes():
     return pd.DataFrame(recipes)
 
 
-df = get_all_recipes()
+data_frame = get_all_recipes()
+
+
+def get_recipe_recommendations(df, recipe_id):
+    return json.loads(df.head(4).to_json(orient='records'))
 
 
 @app.route('/')
@@ -80,9 +84,9 @@ def get_recipes(ingredient):
     query_parser.setSplitOnWhitespace(True)
     query_parser.setAutoGeneratePhraseQueries(True)
 
-    sort = Sort([SortField("total_reviews", SortField.Type.FLOAT, True),
-                 SortField("avg_rating", SortField.Type.FLOAT, True),
-                 SortField.FIELD_SCORE])
+    sort = Sort([SortField.FIELD_SCORE,
+                 SortField("total_reviews", SortField.Type.FLOAT, True),
+                 SortField("avg_rating", SortField.Type.FLOAT, True)])
 
     query = query_parser.parse(ingredient)
     hits = searcher.search(query, 20, sort)
@@ -113,8 +117,7 @@ def get_recipe_details(recipe_id):
 @app.route('/recipe/recommend/<recipe_id>')
 def get_recommended_recipes(recipe_id):
     # recommended recipes should be based on similar ingredients and calories
-    recipes = [{"count": df.shape[0]}] # get_recommended_recipes(df, recipe_id)
-
+    recipes = get_recipe_recommendations(data_frame, recipe_id)
     return jsonify(recipes)
 
 
