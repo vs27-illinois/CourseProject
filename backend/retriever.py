@@ -18,17 +18,18 @@ from org.apache.lucene.queryparser.classic import QueryParser
 from org.apache.lucene.search.highlight import Highlighter, QueryScorer, SimpleHTMLFormatter
 
 
+# Initializes the Flask App and Lucene Searcher
 app = Flask(__name__)
 vm = lucene.initVM()
 mmDir = MMapDirectory(Paths.get('index'))
 searcher = IndexSearcher(DirectoryReader.open(mmDir))
-print(f"Total number of documents: {searcher.getIndexReader().numDocs()}")
 
 
 def convert_to_list(doc, key, highlight=False, query=None):
     if key == "ingredients" and highlight is True and query is not None:
         analyzer = EnglishAnalyzer()
         hl = Highlighter(SimpleHTMLFormatter('<strong>', '</strong>'), QueryScorer(query))
+
         values = []
         for text in doc.getValues(key):
             ts = analyzer.tokenStream("ingredients", StringReader(text))
@@ -37,6 +38,7 @@ def convert_to_list(doc, key, highlight=False, query=None):
                 values.append(text)
             else:
                 values.insert(0, value)
+
         return values
     else:
         return [value for value in doc.getValues(key)]
@@ -71,7 +73,6 @@ def get_all_recipes():
 
         new_recipe = {
             'id': recipe['id'],
-            # 'ingredients': recipe['ingredients'].join(' '),
             'calories': recipe['calories'],
             'protein': recipe['protein'],
             'carbohydrates': recipe['carbohydrates'],
@@ -89,7 +90,7 @@ def get_all_recipes():
     return recipe_list, df
 
 
-# initializes the recipe list and normalized dataframe
+# Initializes the Recipe List and Normalized Dataframe for the Recommendation Service
 all_recipes, data_frame = get_all_recipes()
 
 
