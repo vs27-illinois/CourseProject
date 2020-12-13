@@ -281,7 +281,7 @@
     </mat-card>
 
     <!-- Similar Recipes -->
-    <h2 class="card-details-ft tc-w">Similar Recipes</h2>
+    <h2 class="card-details-ft tc-w">Recipes With Similar Nutritional Value</h2>
     <mat-spinner class="card-dft-spinner" *ngIf="recommends.length == 0"></mat-spinner>
     <mat-grid-list cols="4" rowHeight="335px" *ngIf="recommends.length > 0">
       <mat-grid-tile *ngFor="let recommend of recommends">
