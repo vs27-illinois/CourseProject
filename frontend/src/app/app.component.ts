@@ -15,12 +15,17 @@ export class AppComponent {
   recipes = [];
   recommends = [];
   pageStack = [];
+  subscription;
 
   constructor(
     private recipeService: RecipeService
   ) {}
 
   onInputSubmit(query) {
+    if (this.subscription) {
+      this.subscription.unsubscribe();
+    }
+    window.scrollTo(0, 0);
     let ingredient = query.replace(/[^a-zA-Z0-9 ]/g, '').trim();
     if (ingredient.length > 0) {
       this.recipeService.getRecipes(ingredient)
@@ -45,10 +50,14 @@ export class AppComponent {
   }
 
   onCardClick(recipeId) {
+    if (this.subscription) {
+      this.subscription.unsubscribe();
+    }
+    window.scrollTo(0, 0);
+    this.recommends = [];
     this.recipeService.getRecipeDetails(recipeId)
         .subscribe(data => {
           this.details = data;
-          window.scrollTo(0, 0);
           this.showDetails = true;
           this.pageStack.push(recipeId);
           if (this.pageStack.length > 1) {
@@ -57,11 +66,15 @@ export class AppComponent {
             this.buttonText = "Close";
           }
         });
-    this.recipeService.getRecommendedRecipes(recipeId)
-        .subscribe(data => this.recommends = data);
+    this.subscription = this.recipeService.getRecommendedRecipes(recipeId)
+                            .subscribe(data => this.recommends = data);
   }
 
   onTitleClick() {
+    if (this.subscription) {
+      this.subscription.unsubscribe();
+    }
+    window.scrollTo(0, 0);
     this.showDetails = false;
     this.buttonText = "Close";
     this.details = {};

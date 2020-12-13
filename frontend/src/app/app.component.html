@@ -9,7 +9,8 @@
   }
 
   .toolbar {
-    position: absolute;
+    position: fixed;
+    z-index: 1000;
     top: 0;
     left: 0;
     right: 0;
@@ -67,7 +68,7 @@
 
   .content {
     margin: 90px 30px 0px;
-    padding-bottom: 30px;
+    padding-bottom: 60px;
   }
 
   .card {
@@ -148,6 +149,10 @@
     text-align: center;
     background: #1976d2;
     padding: 10px 0px;
+  }
+
+  .card-dft-spinner {
+    margin: 30px auto;
   }
 
   .no-results {
@@ -264,12 +269,12 @@
         </ul>
         <h2 class="card-content-hd">Nutrition</h2>
         <p>
-          {{details.nutrition.calories.displayValue}} calories;
-          protein {{details.nutrition.protein.displayValue}}{{details.nutrition.protein.unit}}
+          {{ details.calories | number:'1.0-0' }} calories;
+          protein {{ details.protein | number:'1.0-0' }}{{details.nutrition.protein.unit}}
           {{details.nutrition.protein.percentDailyValue}}% DV;
-          carbohydrates {{details.nutrition.carbohydrates.displayValue}}{{details.nutrition.carbohydrates.unit}}
+          carbohydrates {{ details.carbohydrates | number:'1.0-0' }}{{details.nutrition.carbohydrates.unit}}
           {{details.nutrition.carbohydrates.percentDailyValue}}% DV;
-          fat {{details.nutrition.fat.displayValue}}{{details.nutrition.fat.unit}}
+          fat {{ details.fat | number:'1.0-0' }}{{details.nutrition.fat.unit}}
           {{details.nutrition.fat.percentDailyValue}}% DV.
         </p>
       </mat-card-content>
@@ -277,7 +282,8 @@
 
     <!-- Similar Recipes -->
     <h2 class="card-details-ft tc-w">Similar Recipes</h2>
-    <mat-grid-list cols="4" rowHeight="335px">
+    <mat-spinner class="card-dft-spinner" *ngIf="recommends.length == 0"></mat-spinner>
+    <mat-grid-list cols="4" rowHeight="335px" *ngIf="recommends.length > 0">
       <mat-grid-tile *ngFor="let recommend of recommends">
         <mat-card class="card" matRipple (click)="onCardClick(recommend.id)">
           <mat-card-header>

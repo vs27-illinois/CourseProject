@@ -1,7 +1,10 @@
+import re
 import json
 import lucene
 import pandas as pd
 
+from scipy.spatial.distance import euclidean
+from sklearn.preprocessing import normalize
 from flask import Flask, render_template
 from flask import jsonify
 from java.nio.file import Paths
@@ -45,31 +48,49 @@ def convert_to_json(doc, highlight=False, query=None):
         'name': doc.get('name'),
         'image': doc.get('image'),
         'calories': float(doc.get('calories')),
+        'protein': float(doc.get('protein')),
+        'carbohydrates': float(doc.get('carbohydrates')),
+        'fat': float(doc.get('fat')),
         'avg_rating': float(doc.get('avg_rating')),
         'total_reviews': int(doc.get('total_reviews')),
         'ingredients': convert_to_list(doc, "ingredients", highlight, query)
     }
 
 
-def parse_results(results, highlight=False, query=None):
-    recipes = []
-    for hit in results.scoreDocs:
-        doc = searcher.doc(hit.doc)
-        recipes.append(convert_to_json(doc, highlight, query))
-    return recipes
-
-
 def get_all_recipes():
     hits = searcher.search(MatchAllDocsQuery(), 50000)
-    recipes = parse_results(hits)
-    return pd.DataFrame(recipes)
+
+    recipe_list = {}
+    recipes = []
+    for hit in hits.scoreDocs:
+        doc = searcher.doc(hit.doc)
+
+        recipe = convert_to_json(doc)
+        recipe_id = recipe['id']
+        recipe_list[recipe_id] = recipe
+
+        new_recipe = {
+            'id': recipe['id'],
+            # 'ingredients': recipe['ingredients'].join(' '),
+            'calories': recipe['calories'],
+            'protein': recipe['protein'],
+            'carbohydrates': recipe['carbohydrates'],
+            'fat': recipe['fat']
+        }
+        recipes.append(new_recipe)
+
+    df_pre = pd.DataFrame(recipes)
+    df = df_pre.drop('id', axis=1)
+    df.index = df_pre['id']
+    df_norm = pd.DataFrame(normalize(df, axis=0))
+    df_norm.columns = df.columns
+    df_norm.index = df.index
+
+    return recipe_list, df
 
 
-data_frame = get_all_recipes()
-
-
-def get_recipe_recommendations(df, recipe_id):
-    return json.loads(df.head(4).to_json(orient='records'))
+# initializes the recipe list and normalized dataframe
+all_recipes, data_frame = get_all_recipes()
 
 
 @app.route('/')
@@ -80,18 +101,24 @@ def home():
 @app.route('/recipe/search/<ingredient>')
 def get_recipes(ingredient):
     vm.attachCurrentThread()
-    query_parser = QueryParser("ingredients", EnglishAnalyzer())
-    query_parser.setSplitOnWhitespace(True)
-    query_parser.setAutoGeneratePhraseQueries(True)
+    recipes = []
+    ingredient = re.sub('[^a-zA-Z0-9 ]', '', ingredient).strip()
+    if len(ingredient) > 0:
+        query_parser = QueryParser("ingredients", EnglishAnalyzer())
+        query_parser.setSplitOnWhitespace(True)
+        query_parser.setAutoGeneratePhraseQueries(True)
 
-    sort = Sort([SortField.FIELD_SCORE,
-                 SortField("total_reviews", SortField.Type.FLOAT, True),
-                 SortField("avg_rating", SortField.Type.FLOAT, True)])
+        sort = Sort([SortField.FIELD_SCORE,
+                     SortField("total_reviews", SortField.Type.FLOAT, True),
+                     SortField("avg_rating", SortField.Type.FLOAT, True)])
 
-    query = query_parser.parse(ingredient)
-    hits = searcher.search(query, 20, sort)
+        query = query_parser.parse(ingredient)
+        hits = searcher.search(query, 20, sort)
 
-    recipes = parse_results(hits, highlight=True, query=query)
+        for hit in hits.scoreDocs:
+            doc = searcher.doc(hit.doc)
+            recipe = convert_to_json(doc, highlight=True, query=query)
+            recipes.append(recipe)
 
     return jsonify(recipes)
 
@@ -106,7 +133,7 @@ def get_recipe_details(recipe_id):
     recipe = {}
     for hit in hits.scoreDocs:
         doc = searcher.doc(hit.doc)
-        recipe.update(convert_to_json(doc))
+        recipe = convert_to_json(doc)
         recipe['time_taken'] = convert_to_list(doc, "time_taken")
         recipe['directions'] = convert_to_list(doc, "directions")
         recipe['nutrition'] = json.loads(doc.get('nutrition'))
@@ -116,8 +143,16 @@ def get_recipe_details(recipe_id):
 
 @app.route('/recipe/recommend/<recipe_id>')
 def get_recommended_recipes(recipe_id):
-    # recommended recipes should be based on similar ingredients and calories
-    recipes = get_recipe_recommendations(data_frame, recipe_id)
+    base_id = int(recipe_id)
+    indices = pd.DataFrame(data_frame.index)
+    indices = indices[indices.id != base_id]
+    indices['distance'] = indices['id'].apply(lambda x: euclidean(data_frame.loc[base_id], data_frame.loc[x]))
+    result = indices.sort_values(['distance']).head(4).sort_values(by=['distance', 'id'])
+
+    recipes = []
+    for index in result.id:
+        recipes.append(all_recipes[index])
+
     return jsonify(recipes)
 
 

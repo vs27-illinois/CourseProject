@@ -78,6 +78,9 @@ def index_data():
 
             nutrition = ast.literal_eval(row["nutritions"])
             doc.add(Field("calories", nutrition["calories"]["amount"], t4))
+            doc.add(Field("protein", nutrition["protein"]["amount"], t4))
+            doc.add(Field("carbohydrates", nutrition["carbohydrates"]["amount"], t4))
+            doc.add(Field("fat", nutrition["fat"]["amount"], t4))
 
             nutrition = json.dumps(nutrition)
             doc.add(Field("nutrition", nutrition, t1))
