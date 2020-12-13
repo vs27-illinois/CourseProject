@@ -21,20 +21,26 @@ export class AppComponent {
   ) {}
 
   onInputSubmit(query) {
-    let ingredient = query.trim();
+    let ingredient = query.replace(/[^a-zA-Z0-9 ]/g, '').trim();
     if (ingredient.length > 0) {
       this.recipeService.getRecipes(ingredient)
           .subscribe(data => {
             this.recipes = data;
             this.showDetails = false;
-            this.message = 'No results found.';
+            this.message = 'No recipes to show!';
             this.buttonText = "Close";
             this.details = {};
             this.recommends = [];
             this.pageStack = [];
           });
     } else {
-      this.message = 'No results found.';
+      this.recipes = [];
+      this.showDetails = false;
+      this.message = 'No recipes to show!';
+      this.buttonText = "Close";
+      this.details = {};
+      this.recommends = [];
+      this.pageStack = [];
     }
   }
 
